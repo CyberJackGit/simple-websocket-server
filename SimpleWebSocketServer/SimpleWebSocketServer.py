@@ -74,10 +74,11 @@ MAXPAYLOAD = 33554432
 
 class WebSocket(object):
 
-   def __init__(self, server, sock, address):
+   def __init__(self, server, sock, address, callback = None):
       self.server = server
       self.client = sock
       self.address = address
+      self.callback = callback
 
       self.handshaked = False
       self.headerbuffer = bytearray()
@@ -573,7 +574,7 @@ class WebSocket(object):
 
 
 class SimpleWebSocketServer(object):
-   def __init__(self, host, port, websocketclass, selectInterval = 0.1):
+   def __init__(self, host, port, websocketclass, selectInterval = 0.1, callback = None):
       self.websocketclass = websocketclass
       self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -582,12 +583,13 @@ class SimpleWebSocketServer(object):
       self.selectInterval = selectInterval
       self.connections = {}
       self.listeners = [self.serversocket]
+      self.callback = callback
 
    def _decorateSocket(self, sock):
       return sock
 
-   def _constructWebSocket(self, sock, address):
-      return self.websocketclass(self, sock, address)
+   def _constructWebSocket(self, sock, address, callback):
+      return self.websocketclass(self, sock, address, callback)
 
    def close(self):
       self.serversocket.close()
@@ -645,7 +647,7 @@ class SimpleWebSocketServer(object):
                   newsock = self._decorateSocket(sock)
                   newsock.setblocking(0)
                   fileno = newsock.fileno()
-                  self.connections[fileno] = self._constructWebSocket(newsock, address)
+                  self.connections[fileno] = self._constructWebSocket(newsock, address, self.callback)
                   self.listeners.append(fileno)
                except Exception as n:
                   if sock is not None:
